@@ -4,7 +4,6 @@ import { SettingsExporter } from './settings-exporter';
 import { Messaging, MessageType } from '../shared/messaging';
 import { 
   DetectionResult, 
-  SiteSettings, 
   Message, 
   MessageResponse,
   ExportSettingsPayload,

@@ -1,6 +1,3 @@
-import { CONSTANTS } from '../shared/constants';
-import { Logger } from '../shared/logger';
-
 /**
  * Machine Learning Evasion Patterns
  * 

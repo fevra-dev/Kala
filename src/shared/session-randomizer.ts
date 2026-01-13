@@ -1,5 +1,3 @@
-import { CONSTANTS } from './constants';
-
 /**
  * Session-Based Randomization
  * 

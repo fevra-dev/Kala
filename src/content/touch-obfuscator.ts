@@ -16,8 +16,6 @@
  * 4. Add timing jitter to touch sequences
  */
 
-import { Logger } from '../shared/logger';
-
 interface ObfuscatedTouchData {
   clientX: number;
   clientY: number;

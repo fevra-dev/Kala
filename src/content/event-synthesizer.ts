@@ -75,7 +75,7 @@ export class EventSynthesizer {
     markAsSynthetic(syntheticEvent);
     
     // Dispatch to original target element
-    const dispatched = target.dispatchEvent(syntheticEvent);
+    target.dispatchEvent(syntheticEvent);
     
     // For input elements, also update the value directly to ensure text appears
     // This handles cases where sites don't properly process keyboard events

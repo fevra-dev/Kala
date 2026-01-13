@@ -1,7 +1,6 @@
 import { MouseEventData, MouseContext, PrivacyLevel } from '../shared/types';
 import { CONSTANTS } from '../shared/constants';
 import { Logger } from '../shared/logger';
-import { SessionRandomizer } from '../shared/session-randomizer';
 
 /**
  * Mouse Movement Obfuscator

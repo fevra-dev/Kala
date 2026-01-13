@@ -27,20 +27,20 @@ export const Onboarding: React.FC<{ onComplete: () => void }> = ({ onComplete })
    * Check if onboarding has been completed
    */
   useEffect(() => {
-    checkOnboardingStatus();
-  }, []);
-  
-  const checkOnboardingStatus = async () => {
-    try {
-      const result = await storage.local.get('kala_onboarding_completed');
-      if (result.kala_onboarding_completed) {
-        // Onboarding already completed, skip
-        onComplete();
+    const checkOnboardingStatus = async () => {
+      try {
+        const result = await storage.local.get('kala_onboarding_completed');
+        if (result.kala_onboarding_completed) {
+          // Onboarding already completed, skip
+          onComplete();
+        }
+      } catch (error) {
+        Logger.error('Failed to check onboarding status:', error);
       }
-    } catch (error) {
-      Logger.error('Failed to check onboarding status:', error);
-    }
-  };
+    };
+    
+    checkOnboardingStatus();
+  }, [onComplete]);
   
   /**
    * Complete onboarding
@@ -237,7 +237,7 @@ const WelcomeStep: React.FC<{ colors: any }> = ({ colors }) => {
       }}>
         Kala protects your privacy by obfuscating your behavioral patterns—keystroke timing, 
         mouse movements, and scroll patterns—preventing websites from creating unique 
-        "behavioral fingerprints" that can identify you across the web.
+        &quot;behavioral fingerprints&quot; that can identify you across the web.
       </p>
       <div style={{
         padding: '16px',
@@ -407,7 +407,7 @@ const CompleteStep: React.FC<{ colors: any }> = ({ colors }) => {
         ✅
       </div>
       <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: 'bold', color: colors.text }}>
-        You're All Set!
+        You&apos;re All Set!
       </h2>
       <p style={{ 
         margin: '0 0 24px 0', 

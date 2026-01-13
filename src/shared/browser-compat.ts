@@ -238,7 +238,7 @@ export const runtime = {
       }
     },
     
-    removeListener: (callback: Function): void => {
+    removeListener: (callback: (...args: unknown[]) => void): void => {
       if (isFirefox) {
         browserAPI.runtime.onMessage.removeListener(callback as any);
       } else {

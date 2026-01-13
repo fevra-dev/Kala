@@ -120,7 +120,7 @@ export class StatisticsManager {
   /**
    * Track a new site being protected
    */
-  async trackSite(domain: string): Promise<void> {
+  async trackSite(_domain: string): Promise<void> {
     if (!this.statistics) {
       await this.initialize();
     }

@@ -1,4 +1,4 @@
-import { KeyboardEventData, MouseEventData, PrivacyLevel } from '../shared/types';
+import { KeyboardEventData, PrivacyLevel } from '../shared/types';
 import { CONSTANTS } from '../shared/constants';
 import { EventQueue } from './event-queue';
 import { DelayCalculator } from './delay-calculator';
@@ -393,12 +393,6 @@ export class EventInterceptor {
       return;
     }
     
-    // Calculate scroll delta for tracking only
-    const scrollDelta = {
-      x: event.deltaX,
-      y: event.deltaY
-    };
-    
     // Get current scroll position
     const currentScrollX = window.scrollX || window.pageXOffset || 0;
     const currentScrollY = window.scrollY || window.pageYOffset || 0;
@@ -429,7 +423,7 @@ export class EventInterceptor {
    * Note: Scroll events fire after scrolling, so we can't prevent them
    * But we can track patterns for future obfuscation
    */
-  private handleScroll = (event: Event): void => {
+  private handleScroll = (_event: Event): void => {
     // Scroll events are fired after scrolling happens, so we can't prevent them
     // But we can still track patterns for future obfuscation
     if (!this.enabled || !CONSTANTS.SCROLL.ENABLED) {

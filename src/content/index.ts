@@ -141,7 +141,6 @@ class ContentScript {
    * Setup touch event protection
    */
   private setupTouchProtection(): void {
-    const originalAddEventListener = EventTarget.prototype.addEventListener;
     const touchObfuscator = this.touchObfuscator;
     
     // Intercept touch events to add obfuscation
@@ -212,7 +211,7 @@ class ContentScript {
       }
     }, { capture: true });
     
-    document.addEventListener('paste', (e) => {
+    document.addEventListener('paste', (_e) => {
       const delay = interaction.getPasteDelay();
       if (delay > 0) {
         Logger.debug(`Paste event jitter: ${delay.toFixed(1)}ms`);

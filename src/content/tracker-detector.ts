@@ -15,7 +15,7 @@ import { Logger } from '../shared/logger';
 export class TrackerDetector {
   private detections: Map<string, DetectionResult> = new Map();
   private scanInterval: number | null = null;
-  private listeners: Map<string, Function[]> = new Map();
+  private listeners: Map<string, ((data: DetectionResult) => void)[]> = new Map();
   
   /**
    * Start periodic scanning for trackers
@@ -245,7 +245,7 @@ export class TrackerDetector {
   /**
    * Simple event emitter implementation
    */
-  on(event: string, callback: Function): void {
+  on(event: string, callback: (data: DetectionResult) => void): void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
     }

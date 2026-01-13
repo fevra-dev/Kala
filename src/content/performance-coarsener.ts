@@ -26,11 +26,12 @@ export class PerformanceCoarsener {
     this.originalNow = performance.now;
     
     // Override with coarsened version
-    const self = this;
+    const originalNow = this.originalNow;
+    const precision = this.COARSENING_PRECISION;
     performance.now = function(): number {
-      const preciseTime = self.originalNow.call(performance);
+      const preciseTime = originalNow.call(performance);
       // Round to 0.1ms precision (prevents microsecond-level analysis)
-      return Math.floor(preciseTime / self.COARSENING_PRECISION) * self.COARSENING_PRECISION;
+      return Math.floor(preciseTime / precision) * precision;
     };
     
     this.isCoarsened = true;

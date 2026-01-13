@@ -32,7 +32,8 @@ export class WebWorkerTimingProtection {
     this.originalPostMessage = Worker.prototype.postMessage;
     
     // Override Worker.postMessage
-    const self = this;
+    const originalPostMessage = this.originalPostMessage;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Worker.prototype.postMessage = function(...args: any[]) {
       // Add small random delay to worker messages (0-2ms)
       // This prevents precise timing measurements in workers
@@ -40,12 +41,12 @@ export class WebWorkerTimingProtection {
       
       setTimeout(() => {
         // Call original postMessage with original context
-        if (self.originalPostMessage) {
+        if (originalPostMessage) {
           // TypeScript: postMessage accepts (message, options?) or (message, transfer)
           // We'll use the first argument as message, rest as options/transfer
           const message = args[0];
           const options = args.length > 1 ? args[1] : undefined;
-          self.originalPostMessage.call(this, message, options);
+          originalPostMessage.call(this, message, options);
         }
       }, delay);
     };

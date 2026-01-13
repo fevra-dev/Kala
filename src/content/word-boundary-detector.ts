@@ -1,5 +1,3 @@
-import { CONSTANTS } from '../shared/constants';
-
 /**
  * Word Boundary Detector
  * 

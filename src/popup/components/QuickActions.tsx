@@ -1,7 +1,6 @@
 import React from 'react';
 import { Messaging, MessageType } from '../../shared/messaging';
 import { Logger } from '../../shared/logger';
-import { runtime } from '../../shared/browser-compat';
 import { ThemeColors } from '../theme';
 
 /**
@@ -23,7 +22,7 @@ interface Props {
 }
 
 export const QuickActions: React.FC<Props> = ({
-  domain,
+  domain: _domain,
   enabled,
   onProtectionToggle,
   colors

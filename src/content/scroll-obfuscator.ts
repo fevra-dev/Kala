@@ -1,7 +1,6 @@
 import { PrivacyLevel } from '../shared/types';
 import { CONSTANTS } from '../shared/constants';
 import { Logger } from '../shared/logger';
-import { SessionRandomizer } from '../shared/session-randomizer';
 
 /**
  * Scroll Pattern Obfuscator
@@ -119,7 +118,7 @@ export class ScrollObfuscator {
    * - Consistent scrolling (low variance)
    * - Longer duration (> 2 seconds)
    */
-  private detectReadingMode(velocity: number, timeDelta: number): void {
+  private detectReadingMode(velocity: number, _timeDelta: number): void {
     const isSlowScroll = velocity < 5; // pixels per millisecond
     const isConsistent = this.velocityHistory.length > 5 && 
                         this.calculateVelocityVariance() < 2.0;
@@ -179,7 +178,7 @@ export class ScrollObfuscator {
   /**
    * Get velocity multiplier with noise
    */
-  private getVelocityMultiplier(currentVelocity: number): number {
+  private getVelocityMultiplier(_currentVelocity: number): number {
     const baseNoise = CONSTANTS.SCROLL.VELOCITY_NOISE_PERCENT;
     
     // Reading mode: less variation (more natural)
