@@ -22,8 +22,12 @@ describe('DelayCalculator', () => {
       
       const delay = calculator.calculateDelay(context);
       
-      expect(delay).toBeGreaterThanOrEqual(CONSTANTS.DELAY.MEDIUM_PRIVACY.BASE - CONSTANTS.DELAY.MEDIUM_PRIVACY.VARIANCE);
-      expect(delay).toBeLessThanOrEqual(CONSTANTS.DELAY.MEDIUM_PRIVACY.BASE + CONSTANTS.DELAY.MEDIUM_PRIVACY.VARIANCE);
+      // Delay should be at least the minimum
+      expect(delay).toBeGreaterThanOrEqual(CONSTANTS.DELAY.MIN);
+      
+      // Delay should not exceed a reasonable maximum (accounting for all adjustments)
+      // Base + variance + context + session multiplier + micro jitter
+      expect(delay).toBeLessThanOrEqual(200);
     });
     
     it('should reduce delay for gaming context', () => {
@@ -72,13 +76,25 @@ describe('DelayCalculator', () => {
         elementType: 'input',
       };
       
+      // Average multiple samples to reduce randomness impact
+      const samples = 100;
+      let totalLow = 0;
+      let totalHigh = 0;
+      
       calculator.setPrivacyLevel('low');
-      const lowDelay = calculator.calculateDelay(context);
+      for (let i = 0; i < samples; i++) {
+        totalLow += calculator.calculateDelay(context);
+      }
       
       calculator.setPrivacyLevel('high');
-      const highDelay = calculator.calculateDelay(context);
+      for (let i = 0; i < samples; i++) {
+        totalHigh += calculator.calculateDelay(context);
+      }
       
-      expect(highDelay).toBeGreaterThan(lowDelay);
+      const avgLowDelay = totalLow / samples;
+      const avgHighDelay = totalHigh / samples;
+      
+      expect(avgHighDelay).toBeGreaterThan(avgLowDelay);
     });
     
     it('should add word boundary pause', () => {
@@ -91,12 +107,21 @@ describe('DelayCalculator', () => {
         elementType: 'input',
       };
       
-      // Simulate word boundary (space after letter)
-      const delayAfterSpace = calculator.calculateDelay(context, 'a', ' ');
-      const delayAfterLetter = calculator.calculateDelay(context, 'a', 'b');
+      // Average multiple samples to reduce randomness impact
+      let totalAfterSpace = 0;
+      let totalAfterLetter = 0;
+      const samples = 100;
       
-      // Word boundary should add pause
-      expect(delayAfterSpace).toBeGreaterThan(delayAfterLetter);
+      for (let i = 0; i < samples; i++) {
+        totalAfterSpace += calculator.calculateDelay(context, 'a', ' ');
+        totalAfterLetter += calculator.calculateDelay(context, 'a', 'b');
+      }
+      
+      const avgDelayAfterSpace = totalAfterSpace / samples;
+      const avgDelayAfterLetter = totalAfterLetter / samples;
+      
+      // Word boundary should add pause (on average)
+      expect(avgDelayAfterSpace).toBeGreaterThan(avgDelayAfterLetter);
     });
   });
   

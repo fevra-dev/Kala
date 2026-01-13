@@ -5,7 +5,11 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   transform: {
-    '^.+\\.tsx?$': 'ts-jest',
+    '^.+\\.tsx?$': ['ts-jest', {
+      tsconfig: {
+        jsx: 'react',
+      },
+    }],
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
@@ -19,13 +23,6 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  globals: {
-    'ts-jest': {
-      tsconfig: {
-        jsx: 'react',
-      },
-    },
-  },
   // Mock Chrome APIs
   testEnvironmentOptions: {
     customExportConditions: [''],
