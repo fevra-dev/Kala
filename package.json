@@ -1,0 +1,70 @@
+{
+  "name": "kala",
+  "version": "0.2.0",
+  "description": "Kala - Browser extension to protect against behavioral biometrics tracking",
+  "keywords": [
+    "privacy",
+    "browser-extension",
+    "anti-tracking",
+    "behavioral-biometrics",
+    "fingerprinting",
+    "chrome-extension",
+    "firefox-extension",
+    "privacy-protection",
+    "keystroke-dynamics",
+    "anti-fingerprinting"
+  ],
+  "author": "Fevra",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fevra-Dev/kala.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Fevra-Dev/kala/issues"
+  },
+  "homepage": "https://github.com/Fevra-Dev/kala#readme",
+  "scripts": {
+    "dev": "webpack --mode development --watch",
+    "build": "webpack --mode production",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint 'src/**/*.{ts,tsx}' --max-warnings 0",
+    "lint:fix": "eslint 'src/**/*.{ts,tsx}' --fix",
+    "format": "prettier --write 'src/**/*.{ts,tsx}'",
+    "format:check": "prettier --check 'src/**/*.{ts,tsx}'",
+    "typecheck": "tsc --noEmit",
+    "prebuild": "npm run typecheck",
+    "ci": "npm run lint && npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.254",
+    "@types/jest": "^29.5.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "copy-webpack-plugin": "^11.0.0",
+    "css-loader": "^6.8.0",
+    "eslint": "^8.45.0",
+    "eslint-plugin-react": "^7.33.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "jest": "^29.5.0",
+    "jest-environment-jsdom": "^30.2.0",
+    "prettier": "^3.0.0",
+    "style-loader": "^3.3.0",
+    "terser-webpack-plugin": "^5.3.0",
+    "ts-jest": "^29.1.0",
+    "ts-loader": "^9.4.0",
+    "typescript": "^5.0.0",
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
