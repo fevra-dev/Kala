@@ -581,13 +581,13 @@ class ServiceWorker {
       }
       
       if (detections.length > 0) {
-        // Trackers detected - Orange badge
+        // Trackers detected - Show count, no warning icon (clean design)
         await action.setBadgeText({
-          text: '⚠️',
+          text: String(detections.length),
           tabId
         });
         await action.setBadgeBackgroundColor({
-          color: '#ff9800', // Orange
+          color: '#333333', // Dark gray - subtle, matches Dieter Rams aesthetic
           tabId
         });
         return;

@@ -91,21 +91,21 @@ export class EventInterceptor {
         Logger.info('Mouse obfuscation enabled');
       }
       
-      // Scroll pattern obfuscation
+      // Scroll pattern tracking (passive - no blocking)
       if (CONSTANTS.SCROLL.ENABLED) {
-        // Intercept scroll events (wheel events are more reliable than scroll events)
+        // Track scroll events passively - don't block native behavior
         document.addEventListener('wheel', this.handleWheel, {
           capture: true,
-          passive: false
+          passive: true  // CRITICAL: passive=true so we don't block scrolling
         });
         
-        // Also intercept scroll events for compatibility
+        // Also track scroll events for compatibility
         window.addEventListener('scroll', this.handleScroll, {
           capture: true,
-          passive: false
+          passive: true  // CRITICAL: passive=true so we don't block scrolling
         });
         
-        Logger.info('Scroll obfuscation enabled');
+        Logger.info('Scroll tracking enabled (passive mode)');
       }
       
       Logger.info('Event interceptor initialized');
@@ -384,20 +384,16 @@ export class EventInterceptor {
   /**
    * Handle wheel event (primary scroll event)
    * 
-   * FLOW:
-   * 1. Check if protection enabled
-   * 2. Check if event is synthetic
-   * 3. Stop propagation to page scripts
-   * 4. Get scroll context
-   * 5. Obfuscate scroll timing and velocity
-   * 6. Dispatch obfuscated scroll with delay
+   * NOTE: We do NOT block scroll events as this breaks scrolling on many sites.
+   * Instead, we just track for statistics and let the native scroll happen.
+   * Scroll obfuscation is passive - we don't modify the actual scroll behavior.
    */
   private handleWheel = (event: WheelEvent): void => {
     if (!this.enabled || !CONSTANTS.SCROLL.ENABLED || this.isSyntheticEvent(event)) {
       return;
     }
     
-    // Calculate scroll delta
+    // Calculate scroll delta for tracking only
     const scrollDelta = {
       x: event.deltaX,
       y: event.deltaY
@@ -407,60 +403,25 @@ export class EventInterceptor {
     const currentScrollX = window.scrollX || window.pageXOffset || 0;
     const currentScrollY = window.scrollY || window.pageYOffset || 0;
     
-    // Calculate velocity
-    const now = performance.now();
-    const timeDelta = now - (this.lastMouseTimestamp || now);
-    const distance = Math.sqrt(scrollDelta.x * scrollDelta.x + scrollDelta.y * scrollDelta.y);
-    const velocity = timeDelta > 0 ? distance / timeDelta : 0;
-    
-    // Check if reading mode is detected
-    const isReadingMode = this.scrollObfuscator.getReadingMode();
-    
-    // Get scroll context
-    const scrollContext = this.contextDetector.getScrollContext(
-      scrollDelta,
-      velocity,
-      isReadingMode
-    );
-    
-    // Obfuscate scroll event
-    const obfuscation = this.scrollObfuscator.obfuscateScrollEvent(event, scrollDelta);
-    
-    // Update scroll position tracking
+    // Update scroll position tracking (passive - no blocking)
     this.scrollObfuscator.updateScrollPosition(currentScrollX, currentScrollY);
     this.lastScrollPosition = { x: currentScrollX, y: currentScrollY };
-    this.lastMouseTimestamp = now;
+    this.lastMouseTimestamp = performance.now();
     
-    // Stop original event
-    event.stopImmediatePropagation();
-    event.preventDefault();
+    // Track event for statistics (non-blocking)
+    const startTime = performance.now();
+    const processingTime = performance.now() - startTime;
+    PerformanceMonitor.trackEvent('scroll', processingTime);
     
-    // Apply obfuscated scroll with delay
-    if (obfuscation.delay > 0) {
-      setTimeout(() => {
-        this.applyObfuscatedScroll(scrollDelta, obfuscation.velocityMultiplier);
-      }, obfuscation.delay);
-    } else {
-      // Apply immediately with velocity adjustment
-      const startTime = performance.now();
-      try {
-        this.applyObfuscatedScroll(scrollDelta, obfuscation.velocityMultiplier);
-        
-        // Track performance
-        const processingTime = performance.now() - startTime;
-        PerformanceMonitor.trackEvent('scroll', processingTime);
-        
-        // Track event for statistics
-        Messaging.sendToBackground({
-          type: MessageType.TRACK_EVENT,
-          payload: { eventType: 'scroll', processingTime }
-        }).catch((error) => {
-          ErrorHandler.handleError(error, 'event-interceptor:statistics', true);
-        });
-      } catch (error) {
-        ErrorHandler.handleError(error, 'event-interceptor:scroll', true);
-      }
-    }
+    Messaging.sendToBackground({
+      type: MessageType.TRACK_EVENT,
+      payload: { eventType: 'scroll', processingTime }
+    }).catch((error) => {
+      ErrorHandler.handleError(error, 'event-interceptor:statistics', true);
+    });
+    
+    // LET THE EVENT PASS THROUGH - do NOT call preventDefault() or stopPropagation()
+    // This ensures native scrolling works on all sites
   };
   
   /**
@@ -490,33 +451,6 @@ export class EventInterceptor {
     // EFFICIENCY: Lazy evaluation for debug logs
     if (CONSTANTS.DEBUG.ENABLED) {
       Logger.debug(() => `Scroll event tracked: ${JSON.stringify(scrollDelta)}`);
-    }
-  };
-  
-  /**
-   * Apply obfuscated scroll with velocity multiplier
-   */
-  private applyObfuscatedScroll(
-    scrollDelta: { x: number; y: number },
-    velocityMultiplier: number
-  ): void {
-    // Apply velocity multiplier to scroll delta
-    const obfuscatedDeltaX = scrollDelta.x * velocityMultiplier;
-    const obfuscatedDeltaY = scrollDelta.y * velocityMultiplier;
-    
-    // Scroll the window
-    window.scrollBy({
-      left: obfuscatedDeltaX,
-      top: obfuscatedDeltaY,
-      behavior: 'auto' // Instant scroll (we handle timing externally)
-    });
-    
-    if (CONSTANTS.DEBUG.ENABLED) {
-      Logger.debug('Applied obfuscated scroll:', {
-        original: scrollDelta,
-        obfuscated: { x: obfuscatedDeltaX, y: obfuscatedDeltaY },
-        multiplier: velocityMultiplier.toFixed(3)
-      });
     }
   };
   

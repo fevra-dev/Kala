@@ -319,23 +319,10 @@ const FooterButton: React.FC<{
       fontWeight: active ? '600' : '400',
       letterSpacing: '0.5px',
       padding: '8px 16px',
-      transition: 'color 0.15s ease',
-      position: 'relative'
+      transition: 'color 0.15s ease'
     }}
   >
     {label}
-    {active && (
-      <span style={{
-        position: 'absolute',
-        bottom: '0',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: '4px',
-        height: '4px',
-        backgroundColor: colors.primary,
-        borderRadius: '50%'
-      }} />
-    )}
   </button>
 );
 
@@ -466,9 +453,9 @@ const MainView: React.FC<{
           color: colors.textTertiary,
           textAlign: 'center'
         }}>
-          {privacyLevel === 'low' && '30-50ms delay'}
-          {privacyLevel === 'medium' && '50-100ms delay'}
-          {privacyLevel === 'high' && '80-150ms delay'}
+          {privacyLevel === 'low' && '10-20ms delay'}
+          {privacyLevel === 'medium' && '20-45ms delay'}
+          {privacyLevel === 'high' && '40-80ms delay'}
         </div>
       </div>
     )}
@@ -485,7 +472,7 @@ const StatsView: React.FC<{
 
   useEffect(() => {
     Messaging.sendToBackground({ type: MessageType.GET_STATISTICS })
-      .then(response => setStats(response as Statistics))
+      .then(response => setStats(response.statistics as Statistics))
       .catch(err => Logger.error('Failed to load stats:', err));
   }, []);
 
@@ -848,7 +835,7 @@ const ReportView: React.FC<{
       Messaging.sendToBackground({ type: MessageType.GET_STATISTICS }),
       Messaging.sendToBackground({ type: MessageType.GET_DETECTIONS })
     ]).then(([statsRes, detectionsRes]) => {
-      setStats(statsRes as Statistics);
+      setStats(statsRes.statistics as Statistics);
       setDetections(detectionsRes.detections || []);
     }).catch(err => Logger.error('Failed to load report data:', err));
   }, []);
@@ -1134,9 +1121,9 @@ const OnboardingView: React.FC<{
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {([
-            { level: 'low' as PrivacyLevel, title: 'Low', desc: '30-50ms delay' },
-            { level: 'medium' as PrivacyLevel, title: 'Medium', desc: '50-100ms delay' },
-            { level: 'high' as PrivacyLevel, title: 'High', desc: '80-150ms delay' }
+            { level: 'low' as PrivacyLevel, title: 'Low', desc: '10-20ms delay' },
+            { level: 'medium' as PrivacyLevel, title: 'Medium', desc: '20-45ms delay' },
+            { level: 'high' as PrivacyLevel, title: 'High', desc: '40-80ms delay' }
           ]).map(({ level, title, desc }) => (
             <button
               key={level}

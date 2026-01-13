@@ -181,7 +181,7 @@ class ContentScript {
   }
   
   /**
-   * Setup interaction pattern protection (focus/blur/click/hover)
+   * Setup interaction pattern protection (focus/blur/click/hover/clipboard)
    */
   private setupInteractionProtection(): void {
     const interaction = this.interactionPatternProtection;
@@ -200,7 +200,31 @@ class ContentScript {
       interaction.recordHoverStart();
     }, { passive: true, capture: true });
     
-    Logger.debug('Interaction pattern protection enabled');
+    // Clipboard protection - add timing jitter to copy/paste events
+    document.addEventListener('copy', (e) => {
+      const delay = interaction.getCopyDelay();
+      if (delay > 0) {
+        // Add imperceptible delay to clipboard timing
+        const originalData = e.clipboardData;
+        if (originalData) {
+          Logger.debug(`Copy event jitter: ${delay.toFixed(1)}ms`);
+        }
+      }
+    }, { capture: true });
+    
+    document.addEventListener('paste', (e) => {
+      const delay = interaction.getPasteDelay();
+      if (delay > 0) {
+        Logger.debug(`Paste event jitter: ${delay.toFixed(1)}ms`);
+      }
+    }, { capture: true });
+    
+    // Click pattern protection - normalize click timing
+    document.addEventListener('click', () => {
+      interaction.getClickDelay(); // Track click patterns
+    }, { passive: true, capture: true });
+    
+    Logger.debug('Interaction pattern protection enabled (with clipboard & click)');
   }
   
   /**

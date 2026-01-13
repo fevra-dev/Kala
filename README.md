@@ -66,7 +66,7 @@ These create unique "behavioral fingerprints" that can identify you across the w
 
 ### Core Protection Engine
 - **Event Interception** - Capture-phase interception of keyboard, mouse, and scroll events
-- **Adaptive Delay Injection** - Privacy-level-based timing obfuscation (30-150ms)
+- **Adaptive Delay Injection** - Privacy-level-based timing obfuscation (10-80ms)
 - **Order Preservation** - Events maintain original sequence despite variable delays
 - **Context-Aware Adjustments** - Gaming detection, form fields, search boxes
 
@@ -241,8 +241,8 @@ document.addEventListener('keydown', handler, { capture: true });
 const eventData = cloneEvent(originalEvent);
 
 // 3. Calculate delay with multiple noise sources
-const delay = baseDelay           // Privacy level base (30-150ms)
-            + wordBoundaryPause   // Natural word pauses (50-150ms)
+const delay = baseDelay           // Privacy level base (10-80ms)
+            + wordBoundaryPause   // Natural word pauses
             + digraphNoise        // Key-pair patterns
             + sessionVariation    // Per-session randomness
             + gaussianNoise;      // Natural variance
@@ -258,11 +258,11 @@ eventQueue.process(() => {
 
 ### Privacy Levels
 
-| Level | Base Delay | Variance | Use Case |
-|-------|------------|----------|----------|
-| Low | 30ms | ±20ms | Gaming, real-time typing |
-| Medium | 50ms | ±50ms | General browsing (recommended) |
-| High | 80ms | ±70ms | Maximum privacy |
+| Level | Delay Range | Use Case |
+|-------|-------------|----------|
+| Low | 10-20ms | Gaming, real-time typing |
+| Medium | 20-45ms | General browsing (recommended) |
+| High | 40-80ms | Maximum privacy |
 
 ### Context Detection
 
