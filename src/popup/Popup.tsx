@@ -252,6 +252,7 @@ export const Popup: React.FC = () => {
             enabled={enabled}
             privacyLevel={privacyLevel}
             detections={detections}
+            loading={loading}
             toggleProtection={toggleProtection}
             changePrivacyLevel={changePrivacyLevel}
             colors={colors}
@@ -335,10 +336,11 @@ const MainView: React.FC<{
   enabled: boolean;
   privacyLevel: PrivacyLevel | null;
   detections: DetectionResult[];
+  loading: boolean;
   toggleProtection: () => void;
   changePrivacyLevel: (level: PrivacyLevel) => void;
   colors: ReturnType<typeof getThemeColors>;
-}> = ({ domain, enabled, privacyLevel, detections, toggleProtection, changePrivacyLevel, colors }) => (
+}> = ({ domain, enabled, privacyLevel, detections, loading, toggleProtection, changePrivacyLevel, colors }) => (
   <div style={{ 
     padding: '20px',
     display: 'flex',
@@ -412,8 +414,8 @@ const MainView: React.FC<{
       )}
     </div>
 
-    {/* Privacy Level Selector - only show when data is loaded to prevent animation flash */}
-    {enabled && privacyLevel && (
+    {/* Privacy Level Selector - show when enabled and not loading */}
+    {enabled && !loading && (
       <div style={{ marginTop: '16px' }}>
         <div style={{ 
           fontSize: '10px', 
@@ -426,7 +428,9 @@ const MainView: React.FC<{
         </div>
         <div style={{ display: 'flex', gap: '6px' }}>
           {(['low', 'medium', 'high'] as PrivacyLevel[]).map((level) => {
-            const isSelected = privacyLevel === level;
+            // Use medium as default when privacyLevel hasn't loaded yet
+            const currentLevel = privacyLevel || 'medium';
+            const isSelected = currentLevel === level;
             return (
               <button
                 key={level}
@@ -463,9 +467,9 @@ const MainView: React.FC<{
           color: colors.textTertiary,
           textAlign: 'center'
         }}>
-          {privacyLevel === 'low' && '10-20ms delay'}
-          {privacyLevel === 'medium' && '20-45ms delay'}
-          {privacyLevel === 'high' && '40-80ms delay'}
+          {(privacyLevel || 'medium') === 'low' && '10-20ms delay'}
+          {(privacyLevel || 'medium') === 'medium' && '20-45ms delay'}
+          {(privacyLevel || 'medium') === 'high' && '40-80ms delay'}
         </div>
       </div>
     )}
