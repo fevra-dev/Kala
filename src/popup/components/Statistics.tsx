@@ -159,7 +159,7 @@ export const StatisticsDashboard: React.FC<{ colors?: ThemeColors }> = ({ colors
             value={formatNumber(statistics.trackersBlocked)}
             icon={
               <img 
-                src={chrome.runtime.getURL('assets/logo.png')} 
+                src={chrome.runtime.getURL('assets/kala-icon-inv-128.webp')} 
                 alt="Kala" 
                 style={{ width: '20px', height: '20px', objectFit: 'contain' }} 
               />

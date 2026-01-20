@@ -295,16 +295,22 @@ export const action = {
 
 /**
  * Unified notifications API
+ * Fails gracefully if notification permission not granted
  */
 export const notifications = {
   create: (options: any): Promise<string> => {
-    if (isFirefox) {
-      return browserAPI.notifications.create(options);
-    } else {
-      return new Promise((resolve) => {
-        chrome.notifications.create(options, resolve);
-      });
+    try {
+      if (isFirefox && browserAPI.notifications) {
+        return browserAPI.notifications.create(options);
+      } else if (typeof chrome !== 'undefined' && chrome.notifications) {
+        return new Promise((resolve) => {
+          chrome.notifications.create(options, resolve);
+        });
+      }
+    } catch {
+      // Notification permission not available, fail silently
     }
+    return Promise.resolve('');
   },
 };
 

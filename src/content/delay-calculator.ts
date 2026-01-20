@@ -5,6 +5,7 @@ import { Logger } from '../shared/logger';
 import { DigraphNoiseGenerator } from './digraph-noise-generator';
 import { SessionRandomizer } from '../shared/session-randomizer';
 import { MLEvasion } from './ml-evasion';
+import { FatigueModel } from './fatigue-model';
 
 /**
  * Calculates obfuscation delay for each keystroke
@@ -25,10 +26,12 @@ export class DelayCalculator {
   private privacyLevel: PrivacyLevel = 'medium';
   private wordBoundaryDetector: WordBoundaryDetector;
   private digraphNoiseGenerator: DigraphNoiseGenerator;
+  private fatigueModel: FatigueModel;
   
   constructor() {
     this.wordBoundaryDetector = new WordBoundaryDetector();
     this.digraphNoiseGenerator = new DigraphNoiseGenerator();
+    this.fatigueModel = new FatigueModel();
     
     // Initialize session randomizer
     SessionRandomizer.initialize();
@@ -121,8 +124,15 @@ export class DelayCalculator {
       }
     }
     
+    // Fatigue modeling - simulates natural human fatigue patterns
+    let fatigueAdjustment = 0;
+    if (CONSTANTS.EVASION.FATIGUE_MODELING) {
+      this.fatigueModel.recordKeystroke();
+      fatigueAdjustment = this.fatigueModel.getTotalFatigueAdjustment();
+    }
+    
     // Calculate base total before ML evasion rhythm variation
-    const baseTotal = baseDelay + randomNoise + contextAdjustment + wordBoundaryAdjustment + digraphAdjustment;
+    const baseTotal = baseDelay + randomNoise + contextAdjustment + wordBoundaryAdjustment + digraphAdjustment + fatigueAdjustment;
     
     // Apply session multiplier
     const sessionAdjusted = baseTotal * sessionMultiplier + sessionVariation;
@@ -155,6 +165,7 @@ export class DelayCalculator {
         contextAdjustment,
         wordBoundaryAdjustment: wordBoundaryAdjustment.toFixed(2),
         digraphAdjustment: digraphAdjustment.toFixed(2),
+        fatigueAdjustment: fatigueAdjustment.toFixed(2),
         sessionVariation: sessionVariation.toFixed(2),
         sessionMultiplier: sessionMultiplier.toFixed(3),
         mlEvasionAdjustment: mlEvasionAdjustment.toFixed(2),
@@ -162,7 +173,8 @@ export class DelayCalculator {
         finalDelay: finalDelay.toFixed(2),
         context: context.isGaming ? 'gaming' : context.isFormField ? 'form' : 'default',
         isWordBoundary: wordBoundaryAdjustment > 0,
-        isCommonDigraph: digraphAdjustment !== 0
+        isCommonDigraph: digraphAdjustment !== 0,
+        fatigueLevel: this.fatigueModel.getState().fatigueLevel.toFixed(2)
       }));
     }
     
@@ -185,8 +197,14 @@ export class DelayCalculator {
   
   /**
    * Generate random noise within variance range
-   * Uses Gaussian (normal) distribution for more realistic human-like patterns
-   * Uniform distribution is too predictable and can be detected by advanced trackers
+   * Uses log-normal or Gaussian distribution for realistic human patterns
+   * 
+   * Log-normal is more accurate for human reaction times:
+   * - Always positive (delays can't be negative)
+   * - Right-skewed (occasional longer delays are natural)
+   * - Matches academic research on inter-key intervals
+   * 
+   * Academic basis: "Log-normal distribution of inter-key intervals" (2018)
    */
   private getRandomNoise(): number {
     let variance: number;
@@ -201,6 +219,11 @@ export class DelayCalculator {
       case 'high':
         variance = CONSTANTS.DELAY.HIGH_PRIVACY.VARIANCE;
         break;
+    }
+    
+    // Use log-normal distribution for most realistic human patterns
+    if (CONSTANTS.EVASION.USE_LOGNORMAL_DISTRIBUTION) {
+      return this.generateLogNormalNoise(variance);
     }
     
     if (CONSTANTS.EVASION.USE_GAUSSIAN_DISTRIBUTION) {
@@ -219,6 +242,38 @@ export class DelayCalculator {
       // Fallback to uniform distribution
       return Math.random() * variance;
     }
+  }
+  
+  /**
+   * Generate log-normal noise
+   * Log-normal distribution is ideal for human timing:
+   * - Always positive (no negative delays)
+   * - Right-skewed (occasional longer pauses are natural)
+   * - Median is the typical value, mean is slightly higher
+   * 
+   * @param variance - Target variance in milliseconds
+   * @returns Noise value in milliseconds (always positive, centered around 0)
+   */
+  private generateLogNormalNoise(variance: number): number {
+    // Log-normal parameters
+    // We want median ≈ 0, so we subtract median after generation
+    const sigma = 0.5;  // Controls spread (higher = more variation)
+    const mu = 0;       // Log of median
+    
+    // Generate log-normal using Box-Muller
+    const u1 = Math.random();
+    const u2 = Math.random();
+    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    
+    // Convert to log-normal
+    const logNormal = Math.exp(mu + sigma * z);
+    
+    // Scale to desired variance and center around 0
+    // Median of log-normal with mu=0, sigma=0.5 is e^0 = 1
+    const scaled = (logNormal - 1) * variance;
+    
+    // Clamp to prevent extreme outliers (keep within ±2*variance)
+    return Math.max(-variance, Math.min(variance * 2, scaled));
   }
   
   /**

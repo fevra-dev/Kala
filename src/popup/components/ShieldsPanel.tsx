@@ -88,7 +88,7 @@ export const ShieldsPanel: React.FC<Props> = ({
               getShieldIcon()
             ) : (
               <img 
-                src={chrome.runtime.getURL('assets/logo.png')} 
+                src={chrome.runtime.getURL('assets/kala-icon-inv-128.webp')} 
                 alt="Kala Shield" 
                 style={{ 
                   width: '32px', 

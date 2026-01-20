@@ -316,7 +316,7 @@ class ServiceWorker {
   private showNotification(detection: DetectionResult): void {
     notifications.create({
       type: 'basic',
-      iconUrl: 'assets/icon-128.png',
+      iconUrl: 'assets/kala-icon-inv-128.webp',
       title: 'Kala Alert',
       message: `Detected: ${detection.name}`,
       priority: detection.severity === 'high' ? 2 : 1

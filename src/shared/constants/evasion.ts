@@ -4,9 +4,12 @@
 
 export const EVASION_CONSTANTS = {
   USE_GAUSSIAN_DISTRIBUTION: true,  // Use normal distribution instead of uniform
+  USE_LOGNORMAL_DISTRIBUTION: true, // Use log-normal for more realistic human patterns
   ADD_MICRO_JITTER: true,          // Add microsecond-level timing jitter
   COARSEN_PERFORMANCE_NOW: true,   // Reduce performance.now() precision
-  MICRO_JITTER_RANGE_MS: 0.5       // ±0.25ms micro-jitter range
+  MICRO_JITTER_RANGE_MS: 0.5,      // ±0.25ms micro-jitter range
+  FATIGUE_MODELING: true,          // Enable session-based fatigue simulation
+  FLIGHT_TIME_CORRELATION: true    // Correlate keydown/keyup timing
 };
 
 /**

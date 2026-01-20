@@ -2,6 +2,7 @@ import { KeyboardEventData, MouseEventData } from '../shared/types';
 import { CONSTANTS } from '../shared/constants';
 import { Logger } from '../shared/logger';
 import { markAsSynthetic } from './extension-hider';
+import { ObfuscatedTouchData } from './touch-obfuscator';
 
 /**
  * Creates synthetic keyboard events from stored data
@@ -190,6 +191,75 @@ export class EventSynthesizer {
     
     if (CONSTANTS.DEBUG.ENABLED) {
       Logger.debug('Dispatched synthetic mousemove to', (target as Element).tagName);
+    }
+  }
+  
+  /**
+   * Create and dispatch synthetic touch event
+   * 
+   * @param touches - Array of obfuscated touch data
+   * @param type - Event type ('touchstart', 'touchmove', 'touchend')
+   * @param target - Original event target element
+   */
+  synthesizeAndDispatchTouch(
+    touches: ObfuscatedTouchData[],
+    type: 'touchstart' | 'touchmove' | 'touchend' | 'touchcancel',
+    target: EventTarget | null
+  ): void {
+    if (!target) {
+      Logger.error('Cannot dispatch touch event: no target element');
+      return;
+    }
+    
+    if (CONSTANTS.DEBUG.ENABLED) {
+      Logger.debug(`Synthesizing ${type} event with ${touches.length} touches`);
+    }
+    
+    // Create Touch objects from obfuscated data
+    // Note: Touch constructor is not widely supported, so we create a TouchEvent
+    // with the synthesized properties
+    
+    try {
+      // Create touch list using document.createTouch (deprecated but widely supported)
+      // or fall back to TouchEvent constructor
+      
+      const touchInitList: TouchInit[] = touches.map(touch => ({
+        identifier: touch.identifier,
+        target: touch.target as Element || target as Element,
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        screenX: touch.screenX,
+        screenY: touch.screenY,
+        pageX: touch.pageX,
+        pageY: touch.pageY,
+        radiusX: touch.radiusX,
+        radiusY: touch.radiusY,
+        rotationAngle: touch.rotationAngle,
+        force: touch.force
+      }));
+      
+      // Create synthetic touch event
+      const syntheticEvent = new TouchEvent(type, {
+        touches: touchInitList.map(t => new Touch(t)),
+        targetTouches: touchInitList.map(t => new Touch(t)),
+        changedTouches: touchInitList.map(t => new Touch(t)),
+        bubbles: true,
+        cancelable: true,
+        composed: true
+      });
+      
+      // Mark as synthetic to prevent re-interception
+      markAsSynthetic(syntheticEvent);
+      
+      // Dispatch to original target
+      target.dispatchEvent(syntheticEvent);
+      
+      if (CONSTANTS.DEBUG.ENABLED) {
+        Logger.debug(`Dispatched synthetic ${type} to`, (target as Element).tagName);
+      }
+    } catch (error) {
+      // TouchEvent constructor may not be supported in all environments
+      Logger.debug('Touch synthesis not supported in this environment');
     }
   }
   

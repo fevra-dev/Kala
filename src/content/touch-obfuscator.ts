@@ -14,9 +14,13 @@
  * 2. Normalize touch radius to common values
  * 3. Clamp pressure to discrete levels
  * 4. Add timing jitter to touch sequences
+ * 5. Normalize swipe velocity curves
+ * 6. Add hold duration jitter
  */
 
-interface ObfuscatedTouchData {
+import { Logger } from '../shared/logger';
+
+export interface ObfuscatedTouchData {
   clientX: number;
   clientY: number;
   screenX: number;
@@ -28,18 +32,25 @@ interface ObfuscatedTouchData {
   force: number;
   rotationAngle: number;
   identifier: number;
+  target: EventTarget | null;
 }
 
 export class TouchObfuscator {
   private enabled: boolean = true;
   private privacyLevel: 'low' | 'medium' | 'high' = 'medium';
   private lastTouchTime: number = 0;
+  private touchStartTime: number = 0;
+  private lastPosition: { x: number; y: number } | null = null;
+  private velocityHistory: number[] = [];
   
   // Common touch radius values to normalize to (prevents fingerprinting via finger size)
   private static readonly COMMON_RADII = [11.5, 12, 12.5, 13, 13.5, 14];
   
   // Discrete pressure levels (prevents precise force fingerprinting)
   private static readonly PRESSURE_LEVELS = [0, 0.25, 0.5, 0.75, 1.0];
+  
+  // Common swipe velocities (pixels per millisecond)
+  private static readonly VELOCITY_BINS = [0.2, 0.4, 0.6, 0.8, 1.0, 1.5, 2.0];
   
   /**
    * Set privacy level
@@ -89,7 +100,8 @@ export class TouchObfuscator {
       radiusY: normalizedRadius.y,
       force: quantizedForce,
       rotationAngle: touch.rotationAngle + rotationNoise,
-      identifier: touch.identifier
+      identifier: touch.identifier,
+      target: touch.target
     };
   }
   
@@ -202,7 +214,105 @@ export class TouchObfuscator {
       radiusY: touch.radiusY,
       force: touch.force,
       rotationAngle: touch.rotationAngle,
-      identifier: touch.identifier
+      identifier: touch.identifier,
+      target: touch.target
     };
+  }
+  
+  /**
+   * Record touch start for hold duration tracking
+   */
+  recordTouchStart(touch: Touch): void {
+    this.touchStartTime = performance.now();
+    this.lastPosition = { x: touch.clientX, y: touch.clientY };
+    this.lastTouchTime = performance.now();
+  }
+  
+  /**
+   * Get obfuscated hold duration (touchend - touchstart)
+   * Hold duration patterns are highly unique
+   */
+  getHoldDurationJitter(): number {
+    if (!this.enabled) return 0;
+    
+    const baseJitter = {
+      low: 10,
+      medium: 25,
+      high: 50
+    }[this.privacyLevel];
+    
+    return this.generateGaussianNoise(baseJitter).x;
+  }
+  
+  /**
+   * Normalize swipe velocity to common values
+   * Prevents fingerprinting via unique swipe patterns
+   */
+  normalizeVelocity(velocity: number): number {
+    if (!this.enabled) return velocity;
+    
+    // Find closest velocity bin
+    const normalizedVelocity = TouchObfuscator.VELOCITY_BINS.reduce((prev, curr) =>
+      Math.abs(curr - velocity) < Math.abs(prev - velocity) ? curr : prev
+    );
+    
+    // Add small noise
+    const noise = (Math.random() - 0.5) * 0.1;
+    
+    return Math.max(0, normalizedVelocity + noise);
+  }
+  
+  /**
+   * Track velocity for swipe obfuscation
+   */
+  recordTouchMove(touch: Touch): number {
+    const now = performance.now();
+    const timeDelta = now - this.lastTouchTime;
+    
+    if (this.lastPosition && timeDelta > 0) {
+      const distance = Math.sqrt(
+        Math.pow(touch.clientX - this.lastPosition.x, 2) +
+        Math.pow(touch.clientY - this.lastPosition.y, 2)
+      );
+      
+      const velocity = distance / timeDelta;
+      this.velocityHistory.push(velocity);
+      
+      if (this.velocityHistory.length > 10) {
+        this.velocityHistory.shift();
+      }
+      
+      this.lastPosition = { x: touch.clientX, y: touch.clientY };
+      this.lastTouchTime = now;
+      
+      return this.normalizeVelocity(velocity);
+    }
+    
+    this.lastPosition = { x: touch.clientX, y: touch.clientY };
+    this.lastTouchTime = now;
+    return 0;
+  }
+  
+  /**
+   * Get average velocity (for swipe gesture recognition obfuscation)
+   */
+  getAverageVelocity(): number {
+    if (this.velocityHistory.length === 0) return 0;
+    
+    const sum = this.velocityHistory.reduce((a, b) => a + b, 0);
+    const avg = sum / this.velocityHistory.length;
+    
+    return this.normalizeVelocity(avg);
+  }
+  
+  /**
+   * Reset tracking state
+   */
+  reset(): void {
+    this.lastTouchTime = 0;
+    this.touchStartTime = 0;
+    this.lastPosition = null;
+    this.velocityHistory = [];
+    Logger.debug('Touch obfuscator reset');
   }
 }

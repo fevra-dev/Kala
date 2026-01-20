@@ -11,6 +11,8 @@ import { isSyntheticEvent } from './extension-hider';
 import { Messaging, MessageType } from '../shared/messaging';
 import { PerformanceMonitor } from '../shared/performance-monitor';
 import { ErrorHandler } from '../shared/error-handler';
+import { FlightTimeCorrelator } from './flight-time-correlator';
+import { PointerObfuscator } from './pointer-obfuscator';
 
 /**
  * STATE DIAGRAM:
@@ -39,10 +41,14 @@ export class EventInterceptor {
   private contextDetector: ContextDetector;
   private mouseObfuscator: MouseObfuscator;
   private scrollObfuscator: ScrollObfuscator;
+  private flightTimeCorrelator: FlightTimeCorrelator;
+  private pointerObfuscator: PointerObfuscator;
   private lastKey: string | null = null;  // Track previous key for word-boundary detection
   private lastMousePosition: { x: number; y: number } | null = null;
   private lastMouseTimestamp: number = 0;
   private lastScrollPosition: { x: number; y: number } = { x: 0, y: 0 };
+  // Track pending keydown dispatch times for flight time correlation
+  private pendingKeydownTimes: Map<string, number> = new Map();
   
   constructor() {
     this.eventQueue = new EventQueue();
@@ -51,6 +57,8 @@ export class EventInterceptor {
     this.contextDetector = new ContextDetector();
     this.mouseObfuscator = new MouseObfuscator();
     this.scrollObfuscator = new ScrollObfuscator();
+    this.flightTimeCorrelator = new FlightTimeCorrelator();
+    this.pointerObfuscator = new PointerObfuscator();
   }
   
   /**
@@ -108,6 +116,16 @@ export class EventInterceptor {
         Logger.info('Scroll tracking enabled (passive mode)');
       }
       
+      // Pointer event obfuscation (unified mouse/touch/pen handling)
+      if (CONSTANTS.ADVANCED_PROTECTIONS_V2?.POINTER_EVENT_PROTECTION) {
+        document.addEventListener('pointermove', this.handlePointermove, {
+          capture: true,
+          passive: false
+        });
+        
+        Logger.info('Pointer event protection enabled');
+      }
+      
       Logger.info('Event interceptor initialized');
     } catch (error) {
       // SECURITY: Cleanup on error to prevent memory leaks
@@ -123,7 +141,7 @@ export class EventInterceptor {
    * Check if a key should be excluded from obfuscation
    * Navigation keys, function keys, and system keys should pass through normally
    */
-  private shouldExcludeKey(key: string, code: string): boolean {
+  private shouldExcludeKey(key: string, code: string, event: KeyboardEvent): boolean {
     // Navigation keys - essential for browser/OS functionality
     const navigationKeys = [
       'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
@@ -138,6 +156,12 @@ export class EventInterceptor {
     
     // System modifier combinations - let browser handle
     if (key.startsWith('Meta') || key.startsWith('OS') || code.startsWith('Meta') || code.startsWith('OS')) {
+      return true;
+    }
+    
+    // CRITICAL: Allow system shortcuts like Cmd+C, Cmd+V, Ctrl+C, Ctrl+V, etc.
+    // These should pass through to the browser for copy/paste/undo/etc.
+    if (event.metaKey || event.ctrlKey) {
       return true;
     }
     
@@ -167,7 +191,7 @@ export class EventInterceptor {
     }
     
     // CRITICAL: Exclude navigation and system keys - let them pass through normally
-    if (this.shouldExcludeKey(event.key, event.code)) {
+    if (this.shouldExcludeKey(event.key, event.code, event)) {
       return;
     }
     
@@ -210,6 +234,11 @@ export class EventInterceptor {
       Logger.debug(() => `Calculated delay: ${delay}ms`);
     }
     
+    // Record keydown for flight time correlation
+    if (CONSTANTS.EVASION.FLIGHT_TIME_CORRELATION) {
+      this.flightTimeCorrelator.recordKeydown(eventData.key, delay);
+    }
+    
     // Queue for delayed dispatch
     const startTime = performance.now();
     this.eventQueue.enqueue(eventData, delay, (data) => {
@@ -221,6 +250,9 @@ export class EventInterceptor {
           Logger.info('Dispatching delayed keydown event');
         }
         this.eventSynthesizer.synthesizeAndDispatch(data, event.target, 'keydown');
+        
+        // Track keydown dispatch time for flight time correlation
+        this.pendingKeydownTimes.set(data.key, performance.now());
         
         // Track performance
         const processingTime = performance.now() - startTime;
@@ -240,7 +272,8 @@ export class EventInterceptor {
   };
   
   /**
-   * Handle keyup event (same logic as keydown)
+   * Handle keyup event
+   * Uses flight time correlation for realistic keydown/keyup timing
    */
   private handleKeyup = (event: KeyboardEvent): void => {
     if (!this.enabled || this.isSyntheticEvent(event)) {
@@ -248,7 +281,7 @@ export class EventInterceptor {
     }
     
     // CRITICAL: Exclude navigation and system keys - let them pass through normally
-    if (this.shouldExcludeKey(event.key, event.code)) {
+    if (this.shouldExcludeKey(event.key, event.code, event)) {
       return;
     }
     
@@ -267,12 +300,20 @@ export class EventInterceptor {
       event.target as HTMLElement
     );
     
-    // Calculate delay (word-boundary detection primarily for keydown, but include for consistency)
-    const delay = this.delayCalculator.calculateDelay(
-      context,
-      this.lastKey || undefined,
-      eventData.key
-    );
+    // Use flight time correlation for keyup delay if enabled
+    let delay: number;
+    if (CONSTANTS.EVASION.FLIGHT_TIME_CORRELATION) {
+      const keydownDispatchTime = this.pendingKeydownTimes.get(eventData.key) || performance.now();
+      delay = this.flightTimeCorrelator.getKeyupDelay(eventData.key, keydownDispatchTime);
+      this.pendingKeydownTimes.delete(eventData.key);
+    } else {
+      // Fallback: Calculate delay normally
+      delay = this.delayCalculator.calculateDelay(
+        context,
+        this.lastKey || undefined,
+        eventData.key
+      );
+    }
     
     this.eventQueue.enqueue(eventData, delay, (data) => {
       // EFFICIENCY: Lazy evaluation for debug logs
@@ -449,6 +490,57 @@ export class EventInterceptor {
   };
   
   /**
+   * Handle pointer move events (unified mouse/touch/pen)
+   * Obfuscates pressure, tilt, and contact geometry
+   */
+  private handlePointermove = (event: PointerEvent): void => {
+    if (!this.enabled || this.isSyntheticEvent(event)) {
+      return;
+    }
+    
+    // Only process non-mouse pointer events (touch/pen) fully
+    // Mouse events are handled by handleMousemove
+    if (event.pointerType === 'mouse') {
+      return;
+    }
+    
+    // Obfuscate pointer event
+    const obfuscatedData = this.pointerObfuscator.obfuscatePointerEvent(event);
+    
+    // Stop original and dispatch obfuscated
+    event.stopImmediatePropagation();
+    event.preventDefault();
+    
+    // Synthesize and dispatch obfuscated pointer event
+    const syntheticEvent = new PointerEvent(event.type, {
+      clientX: obfuscatedData.clientX,
+      clientY: obfuscatedData.clientY,
+      screenX: obfuscatedData.screenX,
+      screenY: obfuscatedData.screenY,
+      width: obfuscatedData.width,
+      height: obfuscatedData.height,
+      pressure: obfuscatedData.pressure,
+      tangentialPressure: obfuscatedData.tangentialPressure,
+      tiltX: obfuscatedData.tiltX,
+      tiltY: obfuscatedData.tiltY,
+      twist: obfuscatedData.twist,
+      pointerType: obfuscatedData.pointerType,
+      pointerId: obfuscatedData.pointerId,
+      isPrimary: obfuscatedData.isPrimary,
+      bubbles: true,
+      cancelable: true
+    });
+    
+    // Mark as synthetic to prevent re-interception
+    Object.defineProperty(syntheticEvent, '__kala_synthetic__', { value: true });
+    
+    (event.target as Element)?.dispatchEvent(syntheticEvent);
+    
+    // Track performance
+    PerformanceMonitor.trackEvent('pointer', 0);
+  };
+  
+  /**
    * Enable/disable protection dynamically
    * Called when user toggles in popup
    */
@@ -478,6 +570,8 @@ export class EventInterceptor {
     this.delayCalculator.setPrivacyLevel(level);
     this.mouseObfuscator.setPrivacyLevel(level);
     this.scrollObfuscator.setPrivacyLevel(level);
+    this.flightTimeCorrelator.setPrivacyLevel(level);
+    this.pointerObfuscator.setPrivacyLevel(level);
   }
   
   /**
@@ -501,6 +595,15 @@ export class EventInterceptor {
         window.removeEventListener('scroll', this.handleScroll, { capture: true });
         this.scrollObfuscator.reset();
       }
+      
+      if (CONSTANTS.ADVANCED_PROTECTIONS_V2?.POINTER_EVENT_PROTECTION) {
+        document.removeEventListener('pointermove', this.handlePointermove, { capture: true });
+        this.pointerObfuscator.reset();
+      }
+      
+      // Reset new modules
+      this.flightTimeCorrelator.reset();
+      this.pendingKeydownTimes.clear();
       
       this.eventQueue.clear();
     } catch (error) {

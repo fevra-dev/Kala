@@ -351,7 +351,7 @@ export interface GetDetectionsPayload {
  * Payload for TRACK_EVENT message
  */
 export interface TrackEventPayload {
-  eventType: 'keystroke' | 'mouse' | 'scroll';
+  eventType: 'keystroke' | 'mouse' | 'scroll' | 'pointer' | 'touch';
   processingTime: number;
 }
 

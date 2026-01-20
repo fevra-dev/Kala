@@ -130,7 +130,7 @@ export const QuickActions: React.FC<Props> = ({
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <img 
-            src={chrome.runtime.getURL('assets/logo.png')} 
+            src={chrome.runtime.getURL('assets/kala-icon-inv-128.webp')} 
             alt="Kala" 
             style={{ width: '16px', height: '16px', objectFit: 'contain' }} 
           />

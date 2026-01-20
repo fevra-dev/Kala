@@ -23,7 +23,8 @@ export const Popup: React.FC = () => {
   // Core state
   const [domain, setDomain] = useState<string>('');
   const [enabled, setEnabled] = useState<boolean>(true);
-  const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevel>('medium');
+  // Initialize as null to prevent animation flash on load
+  const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevel | null>(null);
   const [detections, setDetections] = useState<DetectionResult[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [view, setView] = useState<View>('main');
@@ -118,7 +119,7 @@ export const Popup: React.FC = () => {
       type: MessageType.UPDATE_SITE_SETTINGS,
       payload: {
         domain,
-        settings: { enabled: newEnabled, privacyLevel, whitelisted: false }
+        settings: { enabled: newEnabled, privacyLevel: privacyLevel || 'medium', whitelisted: false }
       }
     });
   };
@@ -164,7 +165,7 @@ export const Popup: React.FC = () => {
    */
   const popOut = async () => {
     await storage.local.set({
-      'kala_popout_sync': { domain, privacyLevel, enabled, timestamp: Date.now() }
+      'kala_popout_sync': { domain, privacyLevel: privacyLevel || 'medium', enabled, timestamp: Date.now() }
     });
     await new Promise(r => setTimeout(r, 100));
     const url = chrome.runtime.getURL('popup.html');
@@ -212,7 +213,7 @@ export const Popup: React.FC = () => {
         flexShrink: 0
       }}>
         <img 
-          src={chrome.runtime.getURL('assets/logo.png')} 
+          src={chrome.runtime.getURL('assets/kala-icon-inv-128.webp')} 
           alt="Kala" 
           onClick={() => setView('main')}
           style={{ 
@@ -332,7 +333,7 @@ const FooterButton: React.FC<{
 const MainView: React.FC<{
   domain: string;
   enabled: boolean;
-  privacyLevel: PrivacyLevel;
+  privacyLevel: PrivacyLevel | null;
   detections: DetectionResult[];
   toggleProtection: () => void;
   changePrivacyLevel: (level: PrivacyLevel) => void;
@@ -411,8 +412,8 @@ const MainView: React.FC<{
       )}
     </div>
 
-    {/* Privacy Level Selector */}
-    {enabled && (
+    {/* Privacy Level Selector - only show when data is loaded to prevent animation flash */}
+    {enabled && privacyLevel && (
       <div style={{ marginTop: '16px' }}>
         <div style={{ 
           fontSize: '10px', 
@@ -424,28 +425,37 @@ const MainView: React.FC<{
           Privacy Level
         </div>
         <div style={{ display: 'flex', gap: '6px' }}>
-          {(['low', 'medium', 'high'] as PrivacyLevel[]).map((level) => (
-            <button
-              key={level}
-              onClick={() => changePrivacyLevel(level)}
-              style={{
-                flex: 1,
-                padding: '10px 6px',
-                backgroundColor: privacyLevel === level ? colors.primary : 'transparent',
-                color: privacyLevel === level ? colors.background : colors.textSecondary,
-                border: privacyLevel === level ? 'none' : `1px solid ${colors.border}`,
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '10px',
-                fontWeight: privacyLevel === level ? '600' : '400',
-                letterSpacing: '0.5px',
-                textTransform: 'capitalize',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              {level}
-            </button>
-          ))}
+          {(['low', 'medium', 'high'] as PrivacyLevel[]).map((level) => {
+            const isSelected = privacyLevel === level;
+            return (
+              <button
+                key={level}
+                onClick={() => changePrivacyLevel(level)}
+                style={{
+                  flex: 1,
+                  padding: '10px 6px',
+                  backgroundColor: isSelected ? colors.primary : 'transparent',
+                  color: isSelected ? colors.background : colors.textSecondary,
+                  // Always have border to prevent layout shift - just change color
+                  border: `1px solid ${isSelected ? colors.primary : colors.border}`,
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '10px',
+                  // Consistent font weight to prevent text reflow
+                  fontWeight: '500',
+                  letterSpacing: '0.5px',
+                  textTransform: 'capitalize',
+                  // No transition to prevent animation flash on initial render
+                  transition: 'none',
+                  // Ensure consistent sizing
+                  boxSizing: 'border-box',
+                  minWidth: '0'
+                }}
+              >
+                {level}
+              </button>
+            );
+          })}
         </div>
         <div style={{
           marginTop: '6px',
@@ -1042,6 +1052,9 @@ const Toggle: React.FC<{
 
 /**
  * Onboarding View
+ * 
+ * Dieter Rams: Unobtrusive, honest, thorough.
+ * No decoration for decoration's sake.
  */
 const OnboardingView: React.FC<{
   colors: ReturnType<typeof getThemeColors>;
@@ -1067,33 +1080,45 @@ const OnboardingView: React.FC<{
       <div style={baseStyle}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
           <img 
-            src={chrome.runtime.getURL('assets/logo.png')} 
+            src={chrome.runtime.getURL('assets/kala-icon-inv-128.webp')} 
             alt="Kala" 
-            style={{ width: '72px', height: '72px', marginBottom: '20px' }} 
+            style={{ width: '72px', height: '72px', marginBottom: '24px' }} 
           />
-          <h1 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '12px', letterSpacing: '-0.5px' }}>
+          <h1 style={{ 
+            fontSize: '22px', 
+            fontWeight: '600', 
+            marginBottom: '12px', 
+            letterSpacing: '-0.3px' 
+          }}>
             Welcome to Kala
           </h1>
-          <p style={{ fontSize: '14px', lineHeight: '1.6', color: colors.textSecondary, marginBottom: '24px' }}>
-            Protect your privacy from behavioral tracking. 
-            Kala obfuscates your typing and mouse patterns.
+          <p style={{ 
+            fontSize: '14px', 
+            lineHeight: '1.6', 
+            color: colors.textSecondary, 
+            marginBottom: '24px',
+            maxWidth: '280px'
+          }}>
+            Your fortress against behavioral fingerprinting. Kala protects your typing, mouse, and touch patterns invisibly.
           </p>
           <div style={{
-            padding: '16px',
+            padding: '14px 18px',
             backgroundColor: colors.surfaceAlt,
             borderRadius: '8px',
-            fontSize: '12px',
+            fontSize: '13px',
             color: colors.textSecondary,
-            lineHeight: '1.5'
+            lineHeight: '1.6',
+            textAlign: 'left'
           }}>
-            All processing happens locally. No data leaves your browser.
+            All processing happens locally.<br />
+            No data leaves your browser.
           </div>
         </div>
         <button
           onClick={() => setStep(2)}
           style={{
             width: '100%',
-            padding: '16px',
+            padding: '14px',
             backgroundColor: colors.primary,
             color: colors.background,
             border: 'none',
@@ -1109,41 +1134,76 @@ const OnboardingView: React.FC<{
     );
   }
 
+  const levels = [
+    { level: 'low' as PrivacyLevel, label: 'Low', timing: '10–20ms' },
+    { level: 'medium' as PrivacyLevel, label: 'Medium', timing: '20–45ms', recommended: true },
+    { level: 'high' as PrivacyLevel, label: 'High', timing: '40–80ms' }
+  ];
+
   return (
     <div style={baseStyle}>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: colors.textTertiary, marginBottom: '8px' }}>
-          Step 2 of 2
-        </div>
-        <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '24px', letterSpacing: '-0.5px' }}>
-          Choose Privacy Level
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <h2 style={{ 
+          fontSize: '20px', 
+          fontWeight: '600', 
+          marginBottom: '24px', 
+          letterSpacing: '-0.3px' 
+        }}>
+          Privacy Level
         </h2>
         
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {([
-            { level: 'low' as PrivacyLevel, title: 'Low', desc: '10-20ms delay' },
-            { level: 'medium' as PrivacyLevel, title: 'Medium', desc: '20-45ms delay' },
-            { level: 'high' as PrivacyLevel, title: 'High', desc: '40-80ms delay' }
-          ]).map(({ level, title, desc }) => (
-            <button
-              key={level}
-              onClick={() => setSelectedLevel(level)}
-              style={{
-                width: '100%',
-                padding: '16px',
-                backgroundColor: selectedLevel === level ? colors.primary : 'transparent',
-                color: selectedLevel === level ? colors.background : colors.text,
-                border: selectedLevel === level ? 'none' : `1px solid ${colors.border}`,
-                borderRadius: '8px',
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '4px' }}>{title}</div>
-              <div style={{ fontSize: '12px', opacity: 0.7 }}>{desc}</div>
-            </button>
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {levels.map(({ level, label, timing, recommended }) => {
+            const isSelected = selectedLevel === level;
+            return (
+              <button
+                key={level}
+                onClick={() => setSelectedLevel(level)}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  backgroundColor: isSelected ? colors.primary : 'transparent',
+                  color: isSelected ? colors.background : colors.text,
+                  border: `1px solid ${isSelected ? colors.primary : colors.border}`,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <span style={{ 
+                  fontSize: '14px', 
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  {label}
+                  {recommended && (
+                    <span style={{
+                      fontSize: '10px',
+                      padding: '2px 6px',
+                      backgroundColor: isSelected ? 'rgba(0,0,0,0.15)' : colors.surfaceAlt,
+                      color: isSelected ? colors.background : colors.textSecondary,
+                      borderRadius: '4px',
+                      fontWeight: '500'
+                    }}>
+                      Recommended
+                    </span>
+                  )}
+                </span>
+                <span style={{ 
+                  fontSize: '12px', 
+                  opacity: isSelected ? 0.7 : 0.5,
+                  fontFamily: 'monospace'
+                }}>
+                  {timing}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
       
@@ -1151,7 +1211,7 @@ const OnboardingView: React.FC<{
         onClick={() => onComplete(selectedLevel)}
         style={{
           width: '100%',
-          padding: '16px',
+          padding: '14px',
           backgroundColor: colors.primary,
           color: colors.background,
           border: 'none',
@@ -1161,7 +1221,7 @@ const OnboardingView: React.FC<{
           fontWeight: '600'
         }}
       >
-        Get Started
+        Activate Protection
       </button>
     </div>
   );

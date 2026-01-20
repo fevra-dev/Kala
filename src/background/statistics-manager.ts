@@ -77,7 +77,7 @@ export class StatisticsManager {
   /**
    * Track an obfuscated event (keystroke, mouse, scroll)
    */
-  async trackEvent(eventType: 'keystroke' | 'mouse' | 'scroll', processingTime: number): Promise<void> {
+  async trackEvent(eventType: 'keystroke' | 'mouse' | 'scroll' | 'pointer' | 'touch', processingTime: number): Promise<void> {
     if (!this.statistics) {
       await this.initialize();
     }

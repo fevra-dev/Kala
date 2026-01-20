@@ -217,7 +217,7 @@ const WelcomeStep: React.FC<{ colors: any }> = ({ colors }) => {
     <div style={{ textAlign: 'center' }}>
       <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
         <img 
-          src={chrome.runtime.getURL('assets/logo.png')} 
+          src={chrome.runtime.getURL('assets/kala-icon-inv-128.webp')} 
           alt="Kala" 
           style={{ 
             width: '64px', 

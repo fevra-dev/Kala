@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Kala Logo" width="120" height="120">
+  <img src="assets/kala-icon-inv-128.png" alt="Kala Logo" width="120" height="120">
 </p>
 
 <h1 align="center">Kala</h1>
 
 <p align="center">
-  <strong>Next-Generation Behavioral Biometrics Protection</strong>
+  <strong>Your Fortress Against Behavioral Fingerprinting</strong>
 </p>
 
 <p align="center">
-  Research-backed privacy defense against keystroke, mouse, touch, and motion tracking
+  Invisible protection for your typing, mouse, and touch patterns. Works silently.
 </p>
 
 <p align="center">
@@ -85,6 +85,10 @@ Based on latest academic research:
 | Device Motion | Sensor fingerprinting papers | Accelerometer/gyroscope tracking |
 | Timing Attacks | Web timing attacks research | RAF/Audio context timing |
 | Interaction Patterns | Behavioral biometrics | Focus/blur/click patterns |
+| **Flight Time Correlation** | DeepKey, TypeNet | Keydown/keyup timing analysis |
+| **Fatigue Modeling** | Fatigue effects research | Session-based pattern detection |
+| **Log-Normal Distribution** | Human reaction time studies | Statistical fingerprinting |
+| **Pointer Obfuscation** | Pen/stylus research | Pressure/tilt fingerprinting |
 
 ### Stealth Mode
 - **Extension Hiding** - Prevents detection via `chrome.runtime.id`
@@ -276,19 +280,22 @@ Kala automatically adjusts behavior based on input context:
 
 ## 🛡️ Protection Modules
 
-### 18 Content Script Modules
+### 22 Content Script Modules
 
 | Module | Purpose |
 |--------|---------|
-| `event-interceptor.ts` | Capture-phase keyboard interception |
+| `event-interceptor.ts` | Capture-phase keyboard/pointer interception |
 | `event-queue.ts` | Order-preserving delayed dispatch |
-| `delay-calculator.ts` | Adaptive delay calculation |
+| `delay-calculator.ts` | Adaptive delay with log-normal distribution |
 | `event-synthesizer.ts` | Synthetic event creation |
 | `word-boundary-detector.ts` | Natural typing pause detection |
 | `digraph-noise-generator.ts` | Key-pair timing patterns |
 | `mouse-obfuscator.ts` | Mouse movement noise injection |
 | `scroll-obfuscator.ts` | Scroll pattern obfuscation |
-| `touch-obfuscator.ts` | Touch event fingerprinting defense |
+| `touch-obfuscator.ts` | Touch/swipe velocity obfuscation |
+| `pointer-obfuscator.ts` | Pen pressure/tilt normalization |
+| `flight-time-correlator.ts` | Correlated keydown/keyup timing |
+| `fatigue-model.ts` | Session-based typing fatigue simulation |
 | `device-motion-protection.ts` | Accelerometer/gyroscope protection |
 | `timing-attack-protection.ts` | RAF/audio timing attack defense |
 | `interaction-pattern-protection.ts` | Focus/blur/click pattern protection |
@@ -298,6 +305,7 @@ Kala automatically adjusts behavior based on input context:
 | `webworker-timing-protection.ts` | Web Worker timing attack defense |
 | `context-detector.ts` | Gaming/form/search context detection |
 | `tracker-detector.ts` | Behavioral tracker signature detection |
+| `index.ts` | Main content script entry point |
 
 ---
 
@@ -350,8 +358,10 @@ Kala's design is informed by academic research on behavioral biometrics:
 1. **BeCAPTCHA-Mouse** (2020) - Mouse dynamics analysis and evasion
 2. **BehaveFormer** (2023) - Multi-modal behavioral biometrics
 3. **DeepKey** (2017) - Keystroke dynamics authentication
-4. **TypeNet** - Deep learning keystroke analysis
+4. **TypeNet** (2023) - Deep learning keystroke analysis with flight time
 5. **Sensor fingerprinting** - Device motion fingerprinting research
+6. **Fatigue Effects on Keystroke Dynamics** (2019) - Session-based variation
+7. **Log-normal Distribution of Inter-Key Intervals** (2018) - Statistical modeling
 
 ---
 
@@ -393,5 +403,5 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 ---
 
 <p align="center">
-  <strong>Kala</strong> - Protecting your behavioral privacy
+  <strong>Kala</strong> — Your fortress. Works silently.
 </p>

@@ -139,22 +139,67 @@ class ContentScript {
   
   /**
    * Setup touch event protection
+   * Intercepts all touch events and synthesizes obfuscated versions
    */
   private setupTouchProtection(): void {
     const touchObfuscator = this.touchObfuscator;
     
-    // Intercept touch events to add obfuscation
+    // Helper to check if event is synthetic
+    const isSynthetic = (e: TouchEvent): boolean => {
+      return (e as any).__kala_synthetic__ === true;
+    };
+    
+    // Intercept touchstart
     document.addEventListener('touchstart', (e) => {
+      if (isSynthetic(e)) return;
+      
       if (e.touches.length > 0) {
+        // Record touch start for hold duration tracking
+        touchObfuscator.recordTouchStart(e.touches[0]);
+        
         // Apply timing jitter
         const jitter = touchObfuscator.getTouchTimingJitter();
         if (jitter !== 0) {
-          Logger.debug(`Touch event timing jitter: ${jitter.toFixed(2)}ms`);
+          Logger.debug(`Touch start timing jitter: ${jitter.toFixed(2)}ms`);
         }
       }
     }, { passive: true, capture: true });
     
-    Logger.debug('Touch protection enabled');
+    // Intercept touchmove for velocity obfuscation
+    document.addEventListener('touchmove', (e) => {
+      if (isSynthetic(e)) return;
+      
+      if (e.touches.length > 0) {
+        // Track velocity for swipe obfuscation
+        const normalizedVelocity = touchObfuscator.recordTouchMove(e.touches[0]);
+        
+        if (CONSTANTS.DEBUG.ENABLED && normalizedVelocity > 0) {
+          Logger.debug(`Touch velocity normalized: ${normalizedVelocity.toFixed(3)} px/ms`);
+        }
+      }
+    }, { passive: true, capture: true });
+    
+    // Intercept touchend for hold duration
+    document.addEventListener('touchend', (e) => {
+      if (isSynthetic(e)) return;
+      
+      // Get hold duration jitter
+      const holdJitter = touchObfuscator.getHoldDurationJitter();
+      
+      // Check for double-tap normalization
+      if (touchObfuscator.shouldNormalizeDoubleTap()) {
+        const normalizedDelay = touchObfuscator.getDoubleTapDelay();
+        Logger.debug(`Double-tap normalized to ${normalizedDelay.toFixed(0)}ms interval`);
+      }
+      
+      // Track average velocity for gesture analysis protection
+      const avgVelocity = touchObfuscator.getAverageVelocity();
+      if (avgVelocity > 0) {
+        Logger.debug(`Swipe average velocity: ${avgVelocity.toFixed(3)} px/ms`);
+      }
+    }, { passive: true, capture: true });
+    
+    Logger.debug('Touch protection enabled (with velocity & hold duration obfuscation)');
   }
   
   /**
@@ -185,14 +230,41 @@ class ContentScript {
   private setupInteractionProtection(): void {
     const interaction = this.interactionPatternProtection;
     
-    // Focus/blur protection
-    window.addEventListener('focus', () => {
-      interaction.recordFocus(performance.now());
+    // Focus/blur protection with timing jitter
+    window.addEventListener('focus', (e) => {
+      const jitter = interaction.getFocusJitter();
+      if (jitter > 0) {
+        // Apply timing jitter by delaying internal state update
+        setTimeout(() => {
+          interaction.recordFocus(performance.now());
+        }, jitter);
+      } else {
+        interaction.recordFocus(performance.now());
+      }
     }, { capture: true });
     
-    window.addEventListener('blur', () => {
-      interaction.recordBlur(performance.now());
+    window.addEventListener('blur', (e) => {
+      const jitter = interaction.getBlurJitter();
+      if (jitter > 0) {
+        setTimeout(() => {
+          interaction.recordBlur(performance.now());
+        }, jitter);
+      } else {
+        interaction.recordBlur(performance.now());
+      }
     }, { capture: true });
+    
+    // Form field sequence protection - add jitter to field focus events
+    if (CONSTANTS.ADVANCED_PROTECTIONS_V2?.FORM_FIELD_PROTECTION) {
+      document.addEventListener('focusin', (e) => {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+          const fieldId = target.id || (target as HTMLInputElement).name || 'anonymous';
+          const delay = interaction.getFieldFocusDelay(fieldId);
+          Logger.debug(`Form field focus delay: ${delay.toFixed(1)}ms for ${fieldId}`);
+        }
+      }, { passive: true, capture: true });
+    }
     
     // Hover tracking for dwell time protection
     document.addEventListener('mouseenter', () => {
@@ -223,7 +295,15 @@ class ContentScript {
       interaction.getClickDelay(); // Track click patterns
     }, { passive: true, capture: true });
     
-    Logger.debug('Interaction pattern protection enabled (with clipboard & click)');
+    // Visibility state protection
+    document.addEventListener('visibilitychange', () => {
+      const delay = interaction.getVisibilityChangeDelay();
+      if (delay > 0) {
+        Logger.debug(`Visibility change jitter: ${delay.toFixed(1)}ms`);
+      }
+    }, { capture: true });
+    
+    Logger.debug('Interaction pattern protection enabled (with clipboard, click, form field, visibility)');
   }
   
   /**
@@ -240,6 +320,9 @@ class ContentScript {
       }
       if (this.interactionPatternProtection) {
         this.interactionPatternProtection.reset();
+      }
+      if (this.touchObfuscator) {
+        this.touchObfuscator.reset();
       }
     } catch (error) {
       Logger.error('Error during content script cleanup:', error);

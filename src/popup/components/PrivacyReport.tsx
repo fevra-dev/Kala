@@ -162,7 +162,7 @@ export const PrivacyReport: React.FC<{ colors?: ThemeColors }> = ({ colors }) =>
   <div class="header">
     <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
       <img 
-        src={chrome.runtime.getURL('assets/logo.png')} 
+        src={chrome.runtime.getURL('assets/kala-icon-inv-128.webp')} 
         alt="Kala" 
         style={{ width: '24px', height: '24px', objectFit: 'contain' }} 
       />

@@ -44,7 +44,7 @@ export class StorageManager {
     return {
       defaultEnabled: true,
       defaultPrivacyLevel: 'medium',
-      showNotifications: true,
+      showNotifications: false,
       enableContextDetection: true,
       customDelayMin: CONSTANTS.DELAY.MIN,
       customDelayMax: CONSTANTS.DELAY.MAX,

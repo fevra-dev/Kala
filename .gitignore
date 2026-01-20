@@ -11,7 +11,6 @@ dist/
 *.swp
 *.swo
 *~
-.DS_Store
 
 # Logs
 *.log
@@ -39,13 +38,19 @@ kala-privacy-report-*.json
 # OS files
 Thumbs.db
 .DS_Store
+**/.DS_Store
 
 # Archive files
 *.zip
 *.tar.gz
 *.rar
 
-# Misc
-MOVE_M3/
-kala_moveme/
+# Large assets not needed in repo (use smaller versions)
+assets/kala-icon-inv-1024.png
+assets/kala-icon-inv-1024.webp
+assets/kala-icon.png
+assets/icon.webp
+
+# Old icon formats (replaced by kala-icon-*)
+assets/icon-*.webp
 

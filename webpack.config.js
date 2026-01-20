@@ -56,11 +56,30 @@ module.exports = (env, argv) => {
     new CopyPlugin({
       patterns: [
         { from: 'manifest.json', to: 'manifest.json' },
-        { from: 'assets', to: 'assets' },
+        { 
+          from: 'assets', 
+          to: 'assets',
+          // Exclude large files that aren't needed in the build
+          globOptions: {
+            ignore: [
+              '**/kala-icon-inv-1024.png',   // Too large (285 KiB), not needed
+              '**/kala-icon-inv-1024.webp',  // Too large, not needed for extension
+              '**/kala-icon.png',             // Too large (285 KiB), replaced by smaller versions
+              '**/icon.webp',                 // Old icon format
+              '**/.DS_Store'                  // macOS system file
+            ]
+          }
+        },
         { from: 'src/popup/popup.html', to: 'popup.html' }
       ]
     })
-  ]
+  ],
+  performance: {
+    // Increase asset size limit for extension builds (icons can be larger)
+    maxAssetSize: 300000,  // 300 KiB
+    maxEntrypointSize: 300000,
+    hints: isProduction ? 'warning' : false
+  }
   };
 };
 
